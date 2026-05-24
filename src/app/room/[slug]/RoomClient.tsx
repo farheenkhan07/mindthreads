@@ -9,7 +9,7 @@ import { Hash, Users, MessageSquare } from "lucide-react";
 import type { Room, Thread, Profile } from "@/types";
 import type { User } from "@supabase/supabase-js";
 
-interface ThreadWithMeta extends Omit<Thread, 'author'> {
+interface ThreadWithMeta extends Thread {
   reply_count: number;
   author: Profile | null;
 }

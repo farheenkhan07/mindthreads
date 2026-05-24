@@ -26,7 +26,7 @@ export interface Thread {
   created_at: string;
   updated_at: string;
   reply_count?: number;
-  author?: Profile;
+  author?: Profile | null;
 }
 
 export interface Reply {
