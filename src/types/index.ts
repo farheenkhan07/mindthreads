@@ -35,7 +35,7 @@ export interface Reply {
   user_id: string;
   body: string;
   created_at: string;
-  author?: Profile;
+  author?: Profile | null;
 }
 
 export interface Message {
@@ -44,7 +44,7 @@ export interface Message {
   user_id: string;
   body: string;
   created_at: string;
-  author?: Profile;
+  author?: Profile | null;
 }
 
 export interface Thought {
