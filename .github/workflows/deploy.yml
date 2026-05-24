@@ -13,6 +13,10 @@ jobs:
     name: Build & Deploy
     runs-on: ubuntu-latest
 
+    env:
+      VERCEL_ORG_ID: team_xUTrvMl3476cPd2dBrn7fXyP
+      VERCEL_PROJECT_ID: prj_4lnLNjnto5HkqBWJcpaMu2YSMDZ5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
