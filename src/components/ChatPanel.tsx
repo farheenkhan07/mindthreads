@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useId } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Send, Lock } from "lucide-react";
 import { timeAgo } from "@/lib/utils";
@@ -18,6 +18,7 @@ interface MessageWithAuthor extends Message {
 }
 
 export function ChatPanel({ roomId, user }: Props) {
+  const instanceId = useId().replace(/:/g, "");
   const clientRef = useRef<ReturnType<typeof createClient> | null>(null);
   const getClient = useCallback(() => {
     if (!clientRef.current) clientRef.current = createClient();
@@ -51,7 +52,7 @@ export function ChatPanel({ roomId, user }: Props) {
   useEffect(() => {
     const sb = getClient();
     const channel = sb
-      .channel(`room:${roomId}:messages`)
+      .channel(`room:${roomId}:messages:${instanceId}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages", filter: `room_id=eq.${roomId}` },
@@ -71,13 +72,13 @@ export function ChatPanel({ roomId, user }: Props) {
       .subscribe();
 
     return () => { sb.removeChannel(channel); };
-  }, [roomId, getClient, scrollToBottom]);
+  }, [roomId, instanceId, getClient, scrollToBottom]);
 
   // Track online presence
   useEffect(() => {
     if (!user) return;
     const sb = getClient();
-    const channel = sb.channel(`room:${roomId}:presence`, {
+    const channel = sb.channel(`room:${roomId}:presence:${instanceId}`, {
       config: { presence: { key: user.id } },
     });
 
@@ -93,7 +94,7 @@ export function ChatPanel({ roomId, user }: Props) {
       });
 
     return () => { sb.removeChannel(channel); };
-  }, [roomId, user, getClient]);
+  }, [roomId, instanceId, user, getClient]);
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
