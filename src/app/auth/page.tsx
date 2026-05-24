@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Brain, Mail, Phone, Chrome, ArrowLeft, Loader2, CheckCircle, AlertCircle } from "lucide-react";
@@ -8,7 +8,7 @@ import Link from "next/link";
 
 type Mode = "options" | "email" | "phone";
 
-export default function AuthPage() {
+function AuthForm() {
   const clientRef = useRef<ReturnType<typeof createClient> | null>(null);
   const getClient = () => {
     if (!clientRef.current) clientRef.current = createClient();
@@ -28,13 +28,12 @@ export default function AuthPage() {
   useEffect(() => {
     const cbError = searchParams.get("error");
     if (cbError) {
-      // Also read Supabase error details from the URL hash
       const hash = window.location.hash;
       const hashParams = new URLSearchParams(hash.replace("#", ""));
       const desc = hashParams.get("error_description");
       if (desc?.includes("Unable to exchange")) {
-        setError("Google sign-in failed: invalid credentials configured. Please try email instead.");
-      } else if (cbError) {
+        setError("Google sign-in failed: credentials not configured correctly. Please try email instead.");
+      } else {
         setError("Sign-in failed. Please try again.");
       }
     }
@@ -224,5 +223,13 @@ export default function AuthPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense>
+      <AuthForm />
+    </Suspense>
   );
 }
