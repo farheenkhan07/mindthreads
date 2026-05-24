@@ -26,7 +26,7 @@ export default function AuthPage() {
     setLoading(true);
     await getClient().auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/` },
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
   };
 
@@ -35,7 +35,7 @@ export default function AuthPage() {
     setLoading(true); setError("");
     const { error } = await getClient().auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${window.location.origin}/` },
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     });
     setLoading(false);
     if (error) { setError(error.message); return; }
