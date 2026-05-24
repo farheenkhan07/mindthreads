@@ -1,25 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Brain, LogIn, LogOut, User } from "lucide-react";
 import type { User as SupaUser } from "@supabase/supabase-js";
 
 export function Navbar() {
   const [user, setUser] = useState<SupaUser | null>(null);
-  const supabase = createClient();
+  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null);
 
   useEffect(() => {
+    const supabase = createClient();
+    supabaseRef.current = supabase;
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setUser(session?.user ?? null);
     });
     return () => subscription.unsubscribe();
-  }, [supabase]);
+  }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    if (supabaseRef.current) {
+      await supabaseRef.current.auth.signOut();
+    }
     setUser(null);
   };
 
