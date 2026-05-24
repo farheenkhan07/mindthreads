@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Brain, Mail, Phone, Chrome, ArrowLeft, Loader2, CheckCircle } from "lucide-react";
+import { Brain, Mail, Phone, Chrome, ArrowLeft, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import Link from "next/link";
 
 type Mode = "options" | "email" | "phone";
@@ -13,6 +14,7 @@ export default function AuthPage() {
     if (!clientRef.current) clientRef.current = createClient();
     return clientRef.current;
   };
+  const searchParams = useSearchParams();
   const [mode, setMode] = useState<Mode>("options");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -21,6 +23,22 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
+
+  // Show error from OAuth callback (e.g. Google sign-in failed)
+  useEffect(() => {
+    const cbError = searchParams.get("error");
+    if (cbError) {
+      // Also read Supabase error details from the URL hash
+      const hash = window.location.hash;
+      const hashParams = new URLSearchParams(hash.replace("#", ""));
+      const desc = hashParams.get("error_description");
+      if (desc?.includes("Unable to exchange")) {
+        setError("Google sign-in failed: invalid credentials configured. Please try email instead.");
+      } else if (cbError) {
+        setError("Sign-in failed. Please try again.");
+      }
+    }
+  }, [searchParams]);
 
   const signInWithGoogle = async () => {
     setLoading(true);
@@ -78,6 +96,15 @@ export default function AuthPage() {
               Sign in to post, reply, and chat live
             </p>
           </div>
+
+          {/* Callback error banner */}
+          {error && mode === "options" && !done && (
+            <div className="flex items-start gap-2 p-3 rounded-xl mb-4 text-sm"
+              style={{ background: "rgba(239,68,68,0.1)", color: "#f87171", border: "1px solid rgba(239,68,68,0.3)" }}>
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
 
           {/* Success states */}
           {done && (
