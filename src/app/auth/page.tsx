@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Brain, Mail, Phone, Chrome, ArrowLeft, Loader2, CheckCircle } from "lucide-react";
 import Link from "next/link";
@@ -8,7 +8,11 @@ import Link from "next/link";
 type Mode = "options" | "email" | "phone";
 
 export default function AuthPage() {
-  const supabase = createClient();
+  const clientRef = useRef<ReturnType<typeof createClient> | null>(null);
+  const getClient = () => {
+    if (!clientRef.current) clientRef.current = createClient();
+    return clientRef.current;
+  };
   const [mode, setMode] = useState<Mode>("options");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -20,7 +24,7 @@ export default function AuthPage() {
 
   const signInWithGoogle = async () => {
     setLoading(true);
-    await supabase.auth.signInWithOAuth({
+    await getClient().auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/` },
     });
@@ -29,7 +33,7 @@ export default function AuthPage() {
   const sendMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true); setError("");
-    const { error } = await supabase.auth.signInWithOtp({
+    const { error } = await getClient().auth.signInWithOtp({
       email,
       options: { emailRedirectTo: `${window.location.origin}/` },
     });
@@ -41,7 +45,7 @@ export default function AuthPage() {
   const sendPhoneOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true); setError("");
-    const { error } = await supabase.auth.signInWithOtp({ phone });
+    const { error } = await getClient().auth.signInWithOtp({ phone });
     setLoading(false);
     if (error) { setError(error.message); return; }
     setOtpSent(true);
@@ -50,7 +54,7 @@ export default function AuthPage() {
   const verifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true); setError("");
-    const { error } = await supabase.auth.verifyOtp({ phone, token: otp, type: "sms" });
+    const { error } = await getClient().auth.verifyOtp({ phone, token: otp, type: "sms" });
     setLoading(false);
     if (error) { setError(error.message); return; }
     window.location.href = "/";

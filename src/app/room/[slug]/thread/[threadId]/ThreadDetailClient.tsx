@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { ArrowLeft, MessageSquare, Send, Loader2, Lock, Clock } from "lucide-react";
@@ -18,7 +18,11 @@ interface Props {
 }
 
 export function ThreadDetailClient({ thread, replies: initialReplies, room, relatedThreads, serverUser, slug }: Props) {
-  const supabase = createClient();
+  const clientRef = useRef<ReturnType<typeof createClient> | null>(null);
+  const getClient = () => {
+    if (!clientRef.current) clientRef.current = createClient();
+    return clientRef.current;
+  };
   const [replies, setReplies] = useState(initialReplies);
   const [replyBody, setReplyBody] = useState("");
   const [loading, setLoading] = useState(false);
@@ -28,7 +32,7 @@ export function ThreadDetailClient({ thread, replies: initialReplies, room, rela
     e.preventDefault();
     if (!replyBody.trim() || !serverUser) return;
     setLoading(true); setError("");
-    const { data, error: err } = await supabase
+    const { data, error: err } = await getClient()
       .from("replies")
       .insert({ thread_id: thread.id, user_id: serverUser.id, body: replyBody.trim() })
       .select("*, author:profiles(id, username, avatar_url, created_at)")

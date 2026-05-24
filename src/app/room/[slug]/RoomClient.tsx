@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { ThreadCard } from "@/components/ThreadCard";
 import { ChatPanel } from "@/components/ChatPanel";
@@ -22,12 +22,16 @@ interface Props {
 }
 
 export function RoomClient({ room, initialThreads, memberCount, serverUser }: Props) {
-  const supabase = createClient();
+  const clientRef = useRef<ReturnType<typeof createClient> | null>(null);
+  const getClient = useCallback(() => {
+    if (!clientRef.current) clientRef.current = createClient();
+    return clientRef.current;
+  }, []);
   const [threads, setThreads] = useState<ThreadWithMeta[]>(initialThreads);
   const [activeTab, setActiveTab] = useState<"threads" | "chat">("threads");
 
   const refreshThreads = useCallback(async () => {
-    const { data } = await supabase
+    const { data } = await getClient()
       .from("threads")
       .select("*, author:profiles(id, username, avatar_url, created_at), reply_count:replies(count)")
       .eq("room_id", room.id)
@@ -39,7 +43,7 @@ export function RoomClient({ room, initialThreads, memberCount, serverUser }: Pr
         reply_count: Array.isArray(t.reply_count) ? t.reply_count[0]?.count ?? 0 : (t.reply_count ?? 0),
       })));
     }
-  }, [room.id, supabase]);
+  }, [room.id, getClient]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 flex flex-col lg:flex-row gap-6">

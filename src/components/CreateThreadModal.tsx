@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { X, Loader2, PenSquare } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
@@ -12,7 +12,11 @@ interface Props {
 }
 
 export function CreateThreadModal({ roomId, user, onCreated }: Props) {
-  const supabase = createClient();
+  const clientRef = useRef<ReturnType<typeof createClient> | null>(null);
+  const getClient = () => {
+    if (!clientRef.current) clientRef.current = createClient();
+    return clientRef.current;
+  };
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -23,7 +27,7 @@ export function CreateThreadModal({ roomId, user, onCreated }: Props) {
     e.preventDefault();
     if (!title.trim() || !body.trim() || !user) return;
     setLoading(true); setError("");
-    const { error } = await supabase.from("threads").insert({
+    const { error } = await getClient().from("threads").insert({
       room_id: roomId,
       user_id: user.id,
       title: title.trim(),

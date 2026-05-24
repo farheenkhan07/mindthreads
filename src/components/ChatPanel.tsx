@@ -18,7 +18,11 @@ interface MessageWithAuthor extends Message {
 }
 
 export function ChatPanel({ roomId, user }: Props) {
-  const supabase = createClient();
+  const clientRef = useRef<ReturnType<typeof createClient> | null>(null);
+  const getClient = useCallback(() => {
+    if (!clientRef.current) clientRef.current = createClient();
+    return clientRef.current;
+  }, []);
   const [messages, setMessages] = useState<MessageWithAuthor[]>([]);
   const [onlineCount, setOnlineCount] = useState(1);
   const [input, setInput] = useState("");
@@ -31,7 +35,7 @@ export function ChatPanel({ roomId, user }: Props) {
 
   // Load initial messages
   useEffect(() => {
-    supabase
+    getClient()
       .from("messages")
       .select("*, author:profiles(id, username, avatar_url, created_at)")
       .eq("room_id", roomId)
@@ -41,17 +45,18 @@ export function ChatPanel({ roomId, user }: Props) {
         setMessages((data as MessageWithAuthor[]) ?? []);
         setTimeout(scrollToBottom, 100);
       });
-  }, [roomId, supabase, scrollToBottom]);
+  }, [roomId, getClient, scrollToBottom]);
 
   // Subscribe to new messages
   useEffect(() => {
-    const channel = supabase
+    const sb = getClient();
+    const channel = sb
       .channel(`room:${roomId}:messages`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages", filter: `room_id=eq.${roomId}` },
         async (payload) => {
-          const { data: author } = await supabase
+          const { data: author } = await sb
             .from("profiles")
             .select("*")
             .eq("id", payload.new.user_id)
@@ -65,13 +70,14 @@ export function ChatPanel({ roomId, user }: Props) {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
-  }, [roomId, supabase, scrollToBottom]);
+    return () => { sb.removeChannel(channel); };
+  }, [roomId, getClient, scrollToBottom]);
 
   // Track online presence
   useEffect(() => {
     if (!user) return;
-    const channel = supabase.channel(`room:${roomId}:presence`, {
+    const sb = getClient();
+    const channel = sb.channel(`room:${roomId}:presence`, {
       config: { presence: { key: user.id } },
     });
 
@@ -86,14 +92,14 @@ export function ChatPanel({ roomId, user }: Props) {
         }
       });
 
-    return () => { supabase.removeChannel(channel); };
-  }, [roomId, user, supabase]);
+    return () => { sb.removeChannel(channel); };
+  }, [roomId, user, getClient]);
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || !user || sending) return;
     setSending(true);
-    await supabase.from("messages").insert({
+    await getClient().from("messages").insert({
       room_id: roomId,
       user_id: user.id,
       body: input.trim(),
